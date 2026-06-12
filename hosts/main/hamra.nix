@@ -4,7 +4,7 @@
 # Lê os dados de hosts/main/hamra.json (gerado pelo wizard)
 # e mapeia para as opções do framework.
 #
-# Se hamra.json não existir, usa os defaults do módulo options.
+# Se hamra.json não existir, usa os defaults internos.
 #
 # Não edite este arquivo manualmente para valores de configuração.
 # Use overrides.nix para customizações.
@@ -14,26 +14,33 @@
 let
   cfgPath = ./hamra.json;
   hasConfig = builtins.pathExists cfgPath;
-  cfg = if hasConfig then builtins.fromJSON (builtins.readFile cfgPath) else {};
-  has = key: builtins.hasAttr key cfg;
+  cfg = if hasConfig then builtins.fromJSON (builtins.readFile cfgPath) else {
+    userName = "nixos";
+    hostname = "nixos";
+    timezone = "America/Sao_Paulo";
+    locale = "pt_BR.UTF-8";
+    keymap = "us";
+    gpu = "intel";
+    loader = "grub";
+    grubDevice = "/dev/sda";
+    session = "plasma";
+  };
 in
 {
-  hamra = lib.mkMerge [
-    (lib.mkIf (has "userName") { userName = cfg.userName; })
-    (lib.mkIf (has "hostname") { system.hostname = cfg.hostname; })
-    (lib.mkIf (has "timezone") { system.timezone = cfg.timezone; })
-    (lib.mkIf (has "locale")   { system.locale = cfg.locale; })
-    (lib.mkIf (has "keymap")   { system.keymap = cfg.keymap; })
-    (lib.mkIf (has "gpu")      { gpu = cfg.gpu; })
-    (lib.mkIf (has "loader")   {
-      boot = {
-        loader = cfg.loader;
-        grub.device = if has "grubDevice" then cfg.grubDevice else "/dev/sda";
-      };
-    })
-    (lib.mkIf (has "session")  {
-      defaultSession = cfg.session;
-      sessions.${cfg.session} = true;
-    })
-  ];
+  hamra = {
+    userName = cfg.userName;
+    system = {
+      hostname = cfg.hostname;
+      timezone = cfg.timezone;
+      locale   = cfg.locale;
+      keymap   = cfg.keymap;
+    };
+    gpu = cfg.gpu;
+    boot = {
+      loader = cfg.loader;
+      grub.device = cfg.grubDevice;
+    };
+    defaultSession = cfg.session;
+    sessions.${cfg.session} = true;
+  };
 }
