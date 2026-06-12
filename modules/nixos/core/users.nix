@@ -19,6 +19,6 @@ in
     description     = lib.mkDefault cfg.userName;
     extraGroups     = lib.mkDefault [ "networkmanager" "wheel" "docker" "wireshark" ];
     shell           = pkgs.zsh;
-    initialPassword = "nixos";
+    password = lib.mkDefault "nixos";
   };
 }

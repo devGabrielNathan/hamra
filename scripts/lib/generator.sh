@@ -27,4 +27,16 @@ generator_main() {
 EOF
 
   echo "  ✓ Gerado: $HAMRA_JSON"
+
+  # Se o PROJECT_DIR difere da origem, copia hamra.json
+  # também para o diretório fonte, assim o rebuild funciona
+  # de qualquer lugar (projeto ou /etc/nixos).
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  local source_dir
+  source_dir="$(dirname "$script_dir")"
+  if [ "$source_dir" != "$PROJECT_DIR" ]; then
+    cp "$HAMRA_JSON" "$source_dir/hosts/main/hamra.json"
+    echo "  ✓ Copiado também para $source_dir/hosts/main/hamra.json"
+  fi
 }
