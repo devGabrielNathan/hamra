@@ -52,19 +52,26 @@ sudo reboot
 
 ## Trocando de sessão
 
-Edite `hosts/main/overrides.nix`:
+Todas as sessões são `false` por padrão. Basta ativar apenas a desejada.
+
+### Forma 1 (recomendada) — `hosts/main/overrides.nix`
 
 ```nix
 { config, pkgs, lib, ... }: {
   hamra = {
-    sessions.plasma   = false;      # desativa plasma
     sessions.gnome    = true;       # ativa gnome
     defaultSession    = "gnome";    # sessão padrão do SDDM
   };
 }
 ```
 
-Depois rebuild:
+### Forma 2 — `hosts/main/hamra.json`
+
+```json
+{ "session": "gnome" }
+```
+
+### Aplicar
 
 ```bash
 sudo nixos-rebuild switch --flake .#main
