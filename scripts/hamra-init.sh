@@ -1,208 +1,161 @@
 #!/usr/bin/env bash
-# ═══════════════════════════════════════════════════════════════
-# hamra-init.sh — Orquestrador de inicialização do Hamra
-# ═══════════════════════════════════════════════════════════════
-#
-# Fluxo:
-#   bootstrap → discovery → migration → hardware → wizard → generator → git
-#
-# Cada fase é implementada em scripts/lib/*.sh com responsabilidade única.
-# A estrutura central CONFIG é um associative array global compartilhado.
-#
-# Fonte da verdade (prioridade):
-#   1. hosts/main/hamra.json (configuração existente)
-#   2. nix eval no flake
-#   3. /etc/nixos/configuration.nix legado
-#   4. Sistema atual (timedatectl, localectl, /etc/passwd)
-#   5. Fallback para defaults do wizard
-#
-# ═══════════════════════════════════════════════════════════════
 set -euo pipefail
 
+# ═══════════════════════════════════════════════════════════════
+# HAMRA — Wizard de Inicialização do NixOS
+# ═══════════════════════════════════════════════════════════════
+# Pré-requisitos: git
+# Uso: sudo bash scripts/hamra-init.sh
+# ═══════════════════════════════════════════════════════════════
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_DIR="$(dirname "$SCRIPT_DIR")"
 
-# ─────────────────────────────────────────────────────────────
-# Utilitários compartilhados (definidos antes dos módulos)
-# ─────────────────────────────────────────────────────────────
-detect_gum() {
-  command -v gum &>/dev/null && echo true || echo false
-}
+# ── Cores ────────────────────────────────────────────────────
+RST=$(tput sgr0); BLD=$(tput bold)
+RED=$(tput setaf 1); GRN=$(tput setaf 2); YLW=$(tput setaf 3); BLU=$(tput setaf 4); CYN=$(tput setaf 6)
 
-HAVE_GUM=$(detect_gum)
-
-ask() {
-  local prompt="$1"
-  local default="$2"
-  local result
-  if [ "$HAVE_GUM" = true ]; then
-    result=$(gum input --placeholder "$prompt" --value "$default" --width 50)
-    echo "${result:-$default}"
-  else
-    printf "  %s [%s]: " "$prompt" "$default" >&2
-    read -r result
-    echo "${result:-$default}"
-  fi
-}
-
-ask_choice() {
-  local prompt="$1"
-  local options="$2"
-  local default="$3"
-  local result
-  if [ "$HAVE_GUM" = true ]; then
-    IFS='|' read -ra opts <<< "$options"
-    result=$(gum choose "${opts[@]}" --header "$prompt")
-    echo "${result:-$default}"
-  else
-    while true; do
-      printf "  %s (%s) [%s]: " "$prompt" "$options" "$default" >&2
-      read -r result
-      result="${result:-$default}"
-      if echo "$options" | tr '|' '\n' | grep -qx "$result"; then
-        echo "$result"
-        return
-      fi
-      echo "  Valor inválido. Escolha entre: $options" >&2
-    done
-  fi
-}
-
-ask_password() {
-  local prompt="$1"
-  local pw1 pw2
-  if [ "$HAVE_GUM" = true ]; then
-    while true; do
-      pw1=$(gum input --password --placeholder "$prompt (Enter = 'nixos')" --width 50)
-      if [ -z "$pw1" ]; then
-        echo "nixos"
-        return
-      fi
-      pw2=$(gum input --password --placeholder "Confirme a senha" --width 50)
-      if [ "$pw1" = "$pw2" ]; then
-        echo "$pw1"
-        return
-      fi
-      gum style --foreground 1 "Senhas não conferem. Tente novamente."
-    done
-  else
-    while true; do
-      printf "  %s (deixe em branco para 'nixos'): " "$prompt" >&2
-      read -rs pw1
-      echo >&2
-      if [ -z "$pw1" ]; then
-        echo "nixos"
-        return
-      fi
-      printf "  Confirme a senha: " >&2
-      read -rs pw2
-      echo >&2
-      if [ "$pw1" = "$pw2" ]; then
-        echo "$pw1"
-        return
-      fi
-      echo "  Senhas não conferem. Tente novamente." >&2
-    done
-  fi
-}
-
-print_header() {
-  if [ "$HAVE_GUM" = true ]; then
-    gum style \
-      --border double --padding "1 2" --margin "0 0" --align center \
-      --foreground 212 --width 50 \
-      "HAMRA" "Wizard de Instalação"
-  else
-    echo ""
-    echo "╔══════════════════════════════════════════════╗"
-    echo "║          HAMRA — Wizard de Instalação        ║"
-    echo "╚══════════════════════════════════════════════╝"
-    echo ""
-  fi
-}
-
-print_section() {
-  if [ "$HAVE_GUM" = true ]; then
-    echo ""
-    gum style --foreground 99 --bold "$1"
-  else
-    echo ""
-    echo "── $1 ──────────────────────────────────────────"
-  fi
-}
-
-extract_nix_string() {
-  local file="$1"
-  local key="$2"
-  grep -oP "${key//./\\.}\s*=\s*\"\K[^\"]+" "$file" 2>/dev/null || true
-}
-
-check_root() {
-  if [ "$EUID" -ne 0 ]; then
-    echo "  ERRO: Execute com sudo."
-    exit 1
-  fi
-}
-
-# ─────────────────────────────────────────────────────────────
-# Carregar módulos
-# ─────────────────────────────────────────────────────────────
-source "$SCRIPT_DIR/lib/bootstrap.sh"
-source "$SCRIPT_DIR/lib/discovery.sh"
-source "$SCRIPT_DIR/lib/migration.sh"
-source "$SCRIPT_DIR/lib/hardware.sh"
-source "$SCRIPT_DIR/lib/wizard.sh"
-source "$SCRIPT_DIR/lib/generator.sh"
-source "$SCRIPT_DIR/lib/git.sh"
-
-# ─────────────────────────────────────────────────────────────
-# Estrutura central de dados
-# ─────────────────────────────────────────────────────────────
+# ── Estado ────────────────────────────────────────────────────
 declare -A CONFIG
+CONFIG=( [userName]="" [hostname]="" [timezone]="" [locale]="" [keymap]=""
+         [gpu]="" [loader]="" [grubDevice]="" [session]="" [password]="" )
+PROJECT_DIR=""; HW_TARGET=""; HAMRA_CONFIG=""
+PASSWORD_EXISTS=false; CONFIG_LOADED=false
 
-CONFIG[userName]=""
-CONFIG[hostname]=""
-CONFIG[timezone]=""
-CONFIG[locale]=""
-CONFIG[keymap]=""
-CONFIG[gpu]=""
-CONFIG[loader]=""
-CONFIG[grubDevice]=""
-CONFIG[session]=""
-CONFIG[password]=""
+# ── Utilitários ──────────────────────────────────────────────
+logo() {
+  clear
+  local art; art=$(cat << 'ART'
+ _   _
+| | | | __ _ _ __ ___  _ __ __ _
+| |_| |/ _` | '_ ` _ \| '__/ _` |
+|  _  | (_| | | | | | | | | (_| |
+|_| |_|\__,_|_| |_| |_|_|  \__,_|
+ART
+)
+  printf "%b%s%b\n\n" "${BLD}${CYN}" "$art" "${RST}"
+  printf "  %b%s%b\n"  "${BLD}${GRN}" "Hamra — Wizard de Inicializacao do NixOS" "${RST}"
+  printf "  %b%s%b\n\n" "${BLU}" "$1" "${RST}"
+}
 
-# ─────────────────────────────────────────────────────────────
-# Variáveis de ambiente do projeto (definidas pelo bootstrap)
-# ─────────────────────────────────────────────────────────────
-PROJECT_DIR=""
-HW_TARGET=""
-HAMRA_TARGET=""
-HAMRA_JSON=""
+ok()   { printf "  %b✓%b %s\n" "$GRN" "$RST" "$1"; }
+info() { printf "  %b•%b %s\n" "$BLU" "$RST" "$1"; }
+warn() { printf "  %b⚠%b %s\n" "$YLW" "$RST" "$1"; }
+err()  { printf "  %b✗%b %s\n" "$RED" "$RST" "$1"; }
 
-# ─────────────────────────────────────────────────────────────
-# Fluxo principal
-# ─────────────────────────────────────────────────────────────
-print_header
-check_root
-bootstrap_main
-discovery_main
-migration_main
-hardware_main
+check_root() { [ "$EUID" -eq 0 ] || { err "Execute com sudo"; exit 1; }; }
+
+nix_read() { grep -oP "${2//./\\.}\s*=\s*\"\K[^\"]+" "$1" 2>/dev/null || true; }
+
+prompt_yn() {
+  while :; do
+    printf "  ${BLD}${GRN}%s${RST} [y/N]: " "$1"
+    read -r yn
+    case "$yn" in [Yy]) return 0;; [Nn]|"") return 1;; *) ;; esac
+  done
+}
+
+prompt_val() {
+  local val
+  printf "  ${BLD}${CYN}%s${RST} [%s]: " "$1" "$2" >&2
+  read -r val; echo "${val:-$2}"
+}
+
+prompt_required() {
+  local val
+  while true; do
+    printf "  ${BLD}${RED}%s${RST} (obrigatório): " "$1" >&2
+    read -r val
+    [ -n "$val" ] && echo "$val" && return
+    err "Valor obrigatório"
+  done
+}
+
+prompt_choice() {
+  local val
+  while true; do
+    printf "  ${BLD}${CYN}%s${RST} (%s) [%s]: " "$1" "$2" "$3" >&2
+    read -r val; val="${val:-$3}"
+    echo "$2" | tr '|' '\n' | grep -qx "$val" && echo "$val" && return
+    err "Valor invalido. Escolha entre: $2"
+  done
+}
+
+prompt_pass() {
+  local pw1 pw2
+  while true; do
+    printf "  ${BLD}${CYN}Senha${RST} (Enter = nixos): " >&2
+    read -rs pw1; echo >&2
+    [ -z "$pw1" ] && echo "nixos" && return
+    printf "  ${BLD}${CYN}Confirme${RST}: " >&2
+    read -rs pw2; echo >&2
+    [ "$pw1" = "$pw2" ] && echo "$pw1" && return
+    err "Senhas nao conferem"
+  done
+}
+
+# ── Aliases para compatibilidade com módulos ────────────────
+ask()            { prompt_val "$@"; }
+ask_required()   { prompt_required "$@"; }
+ask_choice()     { prompt_choice "$@"; }
+ask_password()   { prompt_pass "$@"; }
+log_ok()       { ok "$@"; }
+log_info()     { info "$@"; }
+log_warn()     { warn "$@"; }
+log_error()    { err "$@"; }
+
+# ── Módulos ──────────────────────────────────────────────────
+source "$SCRIPT_DIR/lib/log.sh"
+source "$SCRIPT_DIR/lib/setup.sh"
+source "$SCRIPT_DIR/lib/detect.sh"
+source "$SCRIPT_DIR/lib/wizard.sh"
+source "$SCRIPT_DIR/lib/generate.sh"
+
+# ── Fases ────────────────────────────────────────────────────
+logo "Bem-vindo ao Hamra"
+info "Este wizard vai preparar seu NixOS com a configuracao Hamra"
+info "Ele vai:"
+info "  Copiar os arquivos para /etc/nixos e iniciar git"
+info "  Detectar configuracao existente, GPU e hardware"
+info "  Perguntar dados do usuario, sistema e sessao"
+info "  Gerar a configuracao e definir a senha"
+echo ""
+
+prompt_yn "Deseja continuar?" || { info "Cancelado"; exit 0; }
+echo ""
+
+# ── Fase 1: Setup ────────────────────────────────────────────
+logo "[1/4] Setup — preparando ambiente"
+setup_main
+sleep 1
+
+# ── Fase 2: Deteccao ─────────────────────────────────────────
+logo "[2/4] Deteccao — lendo configuracoes"
+detect_main
+sleep 1
+
+# ── Fase 3: Wizard ───────────────────────────────────────────
+logo "[3/4] Wizard — preenchendo dados"
 wizard_main
-generator_main
-git_main
+sleep 1
 
-# ─────────────────────────────────────────────────────────────
-# Resumo final
-# ─────────────────────────────────────────────────────────────
+# ── Fase 4: Geracao ──────────────────────────────────────────
+logo "[4/4] Geracao — escrevendo arquivos"
+generate_main
+sleep 1
+
+# ── Conclusao ────────────────────────────────────────────────
+logo "Instalacao concluida!"
+echo "  ${BLD}${GRN}Proximos passos:${RST}"
 echo ""
-echo "╔══════════════════════════════════════════════╗"
-echo "║               Setup Concluído!               ║"
-echo "╠══════════════════════════════════════════════╣"
-echo "║  Configuração gerada: hosts/main/hamra-config ║"
-echo "║                                              ║"
-echo "║  Próximos passos:                            ║"
-echo "║    cd /etc/nixos                              ║"
-echo "║    sudo nixos-rebuild switch --flake .#main  ║"
-echo "║    sudo reboot                               ║"
-echo "╚══════════════════════════════════════════════╝"
+echo "  ${BLD}cd /etc/nixos${RST}"
+echo "  ${BLD}sudo nixos-rebuild switch --flake .#main${RST}"
+echo "  ${BLD}sudo reboot${RST}"
 echo ""
+
+if prompt_yn "Deseja reiniciar agora?"; then
+  echo ""
+  info "Reiniciando..."
+  sleep 1
+  sudo reboot
+fi

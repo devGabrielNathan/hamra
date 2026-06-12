@@ -28,8 +28,10 @@ in
     ];
   };
 
-  services.displayManager.defaultSession =
-    lib.mkDefault config.hamra.defaultSession;
+  services.displayManager.defaultSession = lib.mkDefault
+    (if config.hamra.defaultSession == "hyprland-caelestia"
+     then "hyprland"
+     else config.hamra.defaultSession);
 
   environment.systemPackages = [
     pixie-sddm

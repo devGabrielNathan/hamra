@@ -1,14 +1,6 @@
-{ config, lib, pkgs, inputs, ... }:
+{ lib, pkgs, ... }:
 
-let
-  cfg = config.hamra;
-in
-lib.mkIf cfg.sessions.hyprland-caelestia {
-  imports = [
-    inputs.caelestia-shell.homeManagerModules.default
-    inputs.hyprland.homeManagerModules.default
-  ];
-
+{
   programs.caelestia = {
     enable = true;
     cli.enable = true;
@@ -25,7 +17,10 @@ lib.mkIf cfg.sessions.hyprland-caelestia {
 
   wayland.windowManager.hyprland = {
     enable = true;
-    systemdIntegration = true;
+    systemd = {
+      enable = true;
+      variables = [ "XDG_CURRENT_DESKTOP" ];
+    };
     xwayland.enable = true;
 
     settings = {
