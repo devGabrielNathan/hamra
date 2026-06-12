@@ -1,11 +1,13 @@
 # hamra
 
-Configuração NixOS modular com suporte a múltiplos desktop environments via `specialisations`. Cada sessão é construída apenas quando ativada em `hosts/main/hamra.nix`.
+Configuração NixOS modular com suporte a múltiplos desktop environments via `specialisations`. Cada sessão é construída apenas quando ativada.
 
 ## Sessões disponíveis
 
 | Sessão | Opção | WM / DE | DM |
 |--------|-------|---------|----|
+| Niri | `sessions.niri` | Niri (scrollable-tiling) | SDDM |
+| Hyprland + Caelestia Shell | `sessions.hyprland-caelestia` | Hyprland (dinâmico) | SDDM |
 | KDE Plasma 6 | `sessions.plasma` | KWin (Wayland) | SDDM |
 | GNOME | `sessions.gnome` | Mutter (Wayland/X11) | SDDM |
 | Recovery | `sessions.recovery` | TTY (sem gráfico) | — |
@@ -50,79 +52,79 @@ sudo reboot
 
 ## Trocando de sessão
 
-Edite `hosts/main/hamra.nix`:
+Edite `hosts/main/overrides.nix`:
 
 ```nix
-  # ── Sessão ─────────────────────────────────────────────────
-  sessions.recovery = false;      # ativa recovery (se desejar)
-  sessions.plasma   = false;      # desativa plasma
-  sessions.gnome    = true;       # ativa gnome
-  defaultSession    = "gnome";    # sessão padrão do SDDM
+{ config, pkgs, lib, ... }: {
+  hamra = {
+    sessions.plasma   = false;      # desativa plasma
+    sessions.gnome    = true;       # ativa gnome
+    defaultSession    = "gnome";    # sessão padrão do SDDM
+  };
+}
 ```
 
-Depois rebuild com a specialisation desejada:
-
-```bash
-sudo nixos-rebuild switch --flake .#main --specialisation gnome
-```
-
-Para usar apenas a sessão padrão (sem specialisation extra):
+Depois rebuild:
 
 ```bash
 sudo nixos-rebuild switch --flake .#main
 ```
 
-> Recovery desabilita o display manager e o Home Manager. Use apenas quando o ambiente gráfico estiver inacessível (`--specialisation recovery`).
+> Recovery desabilita o display manager e o Home Manager. Use apenas quando o ambiente gráfico estiver inacessível.
 
 ---
 
 ## Configuração
 
-### Valores pessoais — `hosts/main/hamra.nix`
+### Dados da máquina — `hosts/main/hamra.json`
 
-Gerado pelo `hamra-init.sh`, este arquivo centraliza todos os seus valores pessoais. Edite-o diretamente conforme necessário:
+Gerado pelo `hamra-init.sh`, este JSON centraliza os valores da máquina. É lido pelo `hamra.nix` em tempo de avaliação:
 
-```nix
-{ lib, ... }:
+```json
 {
-  hamra = {
-    userName = "gabrielnathan";
-
-    system = {
-      hostname = "nixos";
-      timezone = "America/Sao_Paulo";
-      locale   = "pt_BR.UTF-8";
-      keymap   = "us";
-    };
-
-    boot = {
-      loader = "grub";           # ou "systemd-boot" para UEFI
-      grub.device = "/dev/sda";
-    };
-
-    gpu = "intel";               # amd | nvidia | intel | none
-
-    sessions.plasma = true;
-    defaultSession  = "plasma";
-  };
+  "userName": "gabrielnathan",
+  "hostname": "nixos",
+  "timezone": "America/Sao_Paulo",
+  "locale": "pt_BR.UTF-8",
+  "keymap": "us",
+  "gpu": "intel",
+  "loader": "grub",
+  "grubDevice": "/dev/sda",
+  "session": "plasma"
 }
 ```
 
-Para regenerar do zero: `sudo bash scripts/hamra-init.sh`
+Para regenerar: `sudo bash scripts/hamra-init.sh`
 
-### Personalizações extras — `hosts/main/overrides.nix`
+### Personalizações — `hosts/main/overrides.nix`
 
-Para instalar pacotes adicionais ou habilitar serviços do NixOS além das opções `hamra.*`, edite `hosts/main/overrides.nix`. Este arquivo nunca é alterado pelo framework e é o local ideal para suas customizações.
+Local ideal para customizações. Este arquivo nunca é alterado pelo wizard:
+
+```nix
+{ config, pkgs, lib, ... }: {
+  hamra = {
+    userName = "gabrielnathan";
+    system = {
+      hostname = "workstation";
+      locale   = "en_US.UTF-8";
+    };
+    gpu = "nvidia";
+    sessions.plasma = true;
+    defaultSession  = "plasma";
+  };
+
+  environment.systemPackages = with pkgs; [ vscode discord ];
+}
+```
 
 ### Referência rápida
 
 | O que fazer | Onde editar |
 |-------------|-------------|
-| Hostname, timezone, locale, teclado | `hosts/main/hamra.nix` |
-| Driver de GPU | `hosts/main/hamra.nix` → `hamra.gpu` |
-| Sessão ativa | `hosts/main/hamra.nix` → `hamra.sessions.*` |
-| Sessão padrão | `hosts/main/hamra.nix` → `hamra.defaultSession` |
-| GC automático | `hosts/main/hamra.nix` → `hamra.maintenance.gc.*` |
+| Hostname, timezone, locale, teclado | `hosts/main/overrides.nix` ou `hosts/main/hamra.json` |
+| Driver de GPU | `hosts/main/overrides.nix` → `hamra.gpu` |
+| Sessão ativa | `hosts/main/overrides.nix` → `hamra.sessions.*` |
+| Sessão padrão | `hosts/main/overrides.nix` → `hamra.defaultSession` |
 | Pacotes extras ou serviços do NixOS | `hosts/main/overrides.nix` |
 | Apps para todas as sessões | `modules/home/common/apps.nix` |
 | SDDM / tema do login | `modules/nixos/desktop/display-manager.nix` |
@@ -135,56 +137,68 @@ Para instalar pacotes adicionais ou habilitar serviços do NixOS além das opç�
 
 ```
 hamra/
-├── flake.nix                          # Entrypoint (não editar)
+├── flake.nix                          # Entrypoint (inputs + outputs)
 │
-├── lib/
-│   └── default.nix                    # Helpers e re-exports
+├── lib/                               # Helpers Nix
+│   └── default.nix
 │
 ├── hosts/main/                        # Configuração da máquina
-│   ├── default.nix                    #   Imports e specialisations (optionalAttrs)
-│   ├── hardware-configuration.nix     #   Gerado automaticamente
-│   ├── hamra.nix                      #   Seus valores (gerado por hamra-init)
-│   └── overrides.nix                  #   Seus overrides e customizações extras
+│   ├── default.nix                    #   Imports e specialisations
+│   ├── hamra.nix                      #   Lê hamra.json → opções hamra.*
+│   ├── hamra.json                     #   Seus dados (gerado pelo wizard)
+│   ├── hardware-configuration.nix     #   Gerado por nixos-generate-config
+│   └── overrides.nix                  #   Suas customizações (nunca sobrescrito)
 │
-├── profiles/                          # Receitas — agrupam módulos
-│   ├── base.nix                       #   Módulos comuns (sem sessão)
-│   ├── recovery.nix                   #   Ambiente mínimo de recuperação
+├── profiles/                          # Receitas de sessão
+│   ├── base.nix
+│   ├── recovery.nix
 │   └── desktop/
-│       ├── common.nix                 #   SDDM + variáveis Wayland + pacotes base
-│       ├── gnome.nix                  #   Receita GNOME
-│       └── plasma.nix                 #   Receita KDE Plasma 6
+│       ├── common.nix                 #   Infra base: SDDM, Wayland, audio
+│       ├── hyprland-caelestia.nix
+│       ├── gnome.nix
+│       └── plasma.nix
 │
 ├── modules/
-│   ├── nixos/                         # Sistema (requer sudo)
+│   ├── nixos/                         # Módulos de sistema
 │   │   ├── options/
-│   │   │   └── hamra.nix              #   API pública — todas as opções hamra.*
-│   │   ├── core/                      #   Presente em qualquer sessão NixOS
-│   │   │   ├── boot.nix               #     Bootloader (grub / systemd-boot)
-│   │   │   ├── locale.nix             #     Timezone e locale
-│   │   │   ├── network.nix            #     Hostname e NetworkManager
-│   │   │   ├── keyboard.nix           #     Layout de teclado
-│   │   │   ├── users.nix              #     Usuário via hamra.userName
-│   │   │   └── security.nix           #     sudo e polkit base
+│   │   │   └── hamra.nix              #   API pública (todas as opções hamra.*)
+│   │   ├── core/                      #   Essenciais (toda sessão)
+│   │   │   ├── boot.nix
+│   │   │   ├── locale.nix
+│   │   │   ├── network.nix
+│   │   │   ├── keyboard.nix
+│   │   │   ├── users.nix
+│   │   │   └── security.nix
 │   │   ├── desktop/                   #   Infraestrutura gráfica
-│   │   │   ├── apps.nix               #     Apps padrão
-│   │   │   ├── audio.nix              #     PipeWire + CUPS
-│   │   │   ├── display-manager.nix    #     SDDM (pixie-sddm theme)
-│   │   │   ├── fonts.nix              #     Fontes
-│   │   │   ├── gpu.nix                #     Drivers AMD/NVIDIA/Intel
-│   │   │   ├── polkit.nix             #     Agente de autenticação gráfico
-│   │   │   ├── portals.nix            #     XDG Desktop Portals
-│   │   │   └── wayland.nix            #     Variáveis de ambiente
-│   │   ├── sessions/                  #   Habilita DE no sistema
-│   │   │   ├── gnome.nix              #     GNOME (mkIf)
-│   │   │   └── plasma.nix             #     KDE Plasma 6 (mkIf)
+│   │   │   ├── apps.nix
+│   │   │   ├── audio.nix
+│   │   │   ├── display-manager.nix
+│   │   │   ├── fonts.nix
+│   │   │   ├── gpu.nix
+│   │   │   ├── polkit.nix
+│   │   │   ├── portals.nix
+│   │   │   └── wayland.nix
+│   │   ├── sessions/                  #   Habilita DE (lib.mkIf)
+│   │   │   ├── hyprland.nix
+│   │   │   ├── plasma.nix
+│   │   │   └── gnome.nix
 │   │   └── maintenance/
-│   │       └── gc.nix                 #     GC + otimização do store
+│   │       └── gc.nix
 │   │
-│   └── home/                          # Usuário (dotfiles)
-│       └── common/                    #   Shell, git, terminal, apps comuns
+│   └── home/                          # Dotfiles do usuário
+│       ├── common/                    #   Shell, git, terminal, apps
+│       └── caelestia/                 #   Caelestia Shell desktop
 │
 └── scripts/
-    └── hamra-init.sh                  # Wizard de inicialização
+    ├── hamra-init.sh                  # Orquestrador do wizard
+    └── lib/                           # Módulos do wizard
+        ├── bootstrap.sh               #   Configura /etc/nixos
+        ├── discovery.sh               #   Descobre config existente
+        ├── migration.sh               #   Importa configuration.nix legado
+        ├── hardware.sh                #   Detecta GPU + gera hw-config
+        ├── wizard.sh                  #   Assistente interativo
+        ├── generator.sh               #   Gera hamra.json
+        └── git.sh                     #   Inicializa repositório
 ```
 
 ---
