@@ -107,6 +107,7 @@ CONFIG[gpu]=""
 CONFIG[loader]=""
 CONFIG[grubDevice]=""
 CONFIG[session]=""
+CONFIG[password]=""
 
 # ─────────────────────────────────────────────────────────────
 # Variáveis de ambiente do projeto (definidas pelo bootstrap)

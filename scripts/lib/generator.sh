@@ -28,6 +28,13 @@ EOF
 
   echo "  ✓ Gerado: $HAMRA_JSON"
 
+  # ── Senha (injeção direta no sistema, sem arquivo) ───────────
+  if [ -n "${CONFIG[password]}" ] && [ "${CONFIG[password]}" != "__EXISTS__" ]; then
+    echo "  Definindo senha para ${CONFIG[userName]}..."
+    echo "${CONFIG[userName]}:${CONFIG[password]}" | chpasswd
+    echo "  ✓ Senha definida"
+  fi
+
   # Se o PROJECT_DIR difere da origem, copia hamra.json
   # também para o diretório fonte, assim o rebuild funciona
   # de qualquer lugar (projeto ou /etc/nixos).

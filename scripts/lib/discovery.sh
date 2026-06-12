@@ -123,6 +123,20 @@ discovery_main() {
     esac
   fi
 
+  # ── 4ª fonte: senha existente em /etc/shadow ──────────────
+  if [ -n "${CONFIG[userName]}" ]; then
+    local shadow_entry
+    shadow_entry=$(grep "^${CONFIG[userName]}:" /etc/shadow 2>/dev/null || true)
+    if [ -n "$shadow_entry" ]; then
+      local hash
+      hash=$(echo "$shadow_entry" | cut -d: -f2)
+      if [ -n "$hash" ] && [ "$hash" != "!" ] && [ "$hash" != "*" ] && [ "$hash" != "!!" ]; then
+        CONFIG[password]="__EXISTS__"
+        echo "  ✓ Senha existente detectada para ${CONFIG[userName]}"
+      fi
+    fi
+  fi
+
   # ── 5ª fonte: fallbacks do módulo de opções ────────────────
   # (não aplicamos defaults aqui — o wizard pergunta ao usuário)
   # Apenas registramos o que foi descoberto.
