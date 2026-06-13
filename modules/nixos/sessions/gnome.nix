@@ -1,10 +1,20 @@
-# Habilita GNOME no sistema.
 { config, lib, pkgs, ... }:
 
 let
   cfg = config.hamra;
 in
 lib.mkIf cfg.sessions.gnome {
+  hamra.session = {
+    displayManager = lib.mkDefault "gdm";
+    compositor     = lib.mkDefault "wayland";
+    portals        = lib.mkDefault "gtk";
+    fonts          = lib.mkDefault "default";
+    env = {
+      editor   = lib.mkDefault "nvim";
+      browser  = lib.mkDefault "epiphany";
+      terminal = lib.mkDefault "gnome-terminal";
+    };
+
   services.xserver = {
     enable = true;
     desktopManager.gnome.enable = true;

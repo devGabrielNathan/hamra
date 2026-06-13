@@ -19,14 +19,16 @@
     ../modules/nixos/core/keyboard.nix
     ../modules/nixos/core/users.nix
     ../modules/nixos/core/security.nix
+    ../modules/nixos/core/gpu.nix
 
-    # Desktop: configuração específica de ambiente gráfico
-    ../modules/nixos/desktop/apps.nix
+    # Desktop: módulos reativos (hamra.session.*)
     ../modules/nixos/desktop/audio.nix
+    ../modules/nixos/desktop/display-manager.nix
+    ../modules/nixos/desktop/env.nix
     ../modules/nixos/desktop/fonts.nix
-    ../modules/nixos/desktop/gpu.nix
     ../modules/nixos/desktop/polkit.nix
     ../modules/nixos/desktop/portals.nix
+    ../modules/nixos/desktop/printing.nix
 
     # Manutenção: GC automático e otimização
     ../modules/nixos/maintenance/gc.nix

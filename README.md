@@ -1,13 +1,12 @@
 # hamra
 
-Configuração NixOS modular com suporte a múltiplos desktop environments via `specialisations`. Cada sessão é construída apenas quando ativada.
+Configuração NixOS modular com suporte a múltiplos desktop environments. Cada sessão é construída apenas quando ativada.
 
 ## Sessões disponíveis
 
 | Sessão | Opção | WM / DE | DM |
 |--------|-------|---------|----|
-| Niri | `sessions.niri` | Niri (scrollable-tiling) | SDDM |
-| Hyprland + Caelestia Shell | `sessions.hyprland-caelestia` | Hyprland (dinâmico) | SDDM |
+| BSPWM + gh0stzk | `sessions.bspwm` | bspwm (X11) | SDDM |
 | KDE Plasma 6 | `sessions.plasma` | KWin (Wayland) | SDDM |
 | GNOME | `sessions.gnome` | Mutter (Wayland/X11) | SDDM |
 | Recovery | `sessions.recovery` | TTY (sem gráfico) | — |
@@ -81,8 +80,8 @@ Gerado pelo `hamra-init.sh`, este módulo Nix centraliza os valores da máquina:
       loader = "grub";
       grub.device = "/dev/sda";
     };
-    defaultSession = "hyprland-caelestia";
-    sessions.hyprland-caelestia = true;
+    defaultSession = "bspwm";
+    sessions.bspwm = true;
   };
 }
 ```
@@ -138,19 +137,19 @@ hamra/
 │   ├── recovery.nix
 │   └── desktop/
 │       ├── common.nix
-│       ├── hyprland-caelestia.nix
+│       ├── bspwm.nix
 │       ├── gnome.nix
 │       └── plasma.nix
 ├── modules/
 │   ├── nixos/
 │   │   ├── options/hamra.nix
 │   │   ├── core/       (boot, locale, network, keyboard, users, security)
-│   │   ├── desktop/    (apps, audio, dm, fonts, gpu, polkit, portals, wayland)
-│   │   ├── sessions/   (hyprland, plasma, gnome)
+│   │   ├── desktop/    (audio, dm, env, fonts, gpu, polkit, portals, printing)
+│   │   ├── sessions/   (bspwm, gnome, plasma)
 │   │   └── maintenance/gc.nix
 │   └── home/
 │       ├── common/     (shell, git, terminal, apps)
-│       └── caelestia/
+│       └── gh0stzk/
 ├── scripts/
 │   ├── hamra-init.sh               # Orquestrador (4 fases)
 │   └── lib/

@@ -10,8 +10,6 @@
         la    = "ls -A";
         ".."  = "cd ..";
         "..." = "cd ../..";
-        gs    = "git status";
-        rebuild = "sudo nixos-rebuild switch --flake .#main";
       };
     };
 

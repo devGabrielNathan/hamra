@@ -36,7 +36,7 @@ wizard_main() {
   if [ "${CONFIG[loader]}" = "grub" ]; then
     _wiz_val "Dispositivo GRUB"          grubDevice   "/dev/sda"
   fi
-  _wiz_choice "Sessão"                   session      "hyprland-caelestia|niri|plasma|gnome"  "hyprland-caelestia"
+  _wiz_choice "Sessão"                   session      "bspwm|plasma|gnome"  "bspwm"
 
   if [ "$PASSWORD_EXISTS" = true ]; then
     if prompt_yn "Trocar senha existente?"; then

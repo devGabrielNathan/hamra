@@ -1,21 +1,21 @@
-# Configura áudio do sistema via PipeWire + WirePlumber.
-# PulseAudio é desabilitado explicitamente para evitar conflito.
-{ lib, ... }:
-{
-  services.pulseaudio.enable = lib.mkDefault false;
-  security.rtkit.enable      = lib.mkDefault true;
+# Áudio — pipewire, pulseaudio ou none conforme hamra.session.audio.
+{ config, lib, pkgs, ... }:
 
-  services.pipewire = {
-    enable              = lib.mkDefault true;
-    alsa.enable         = lib.mkDefault true;
-    alsa.support32Bit   = lib.mkDefault true;
-    pulse.enable        = lib.mkDefault true;
-    wireplumber.enable  = lib.mkDefault true;
+let
+  cfg = config.hamra.session;
+in
+lib.mkIf (cfg.audio != "none") {
+  security.rtkit.enable = lib.mkDefault true;
+
+  services.pipewire = lib.mkIf (cfg.audio == "pipewire") {
+    enable             = true;
+    alsa.enable        = true;
+    alsa.support32Bit  = true;
+    pulse.enable       = true;
+    wireplumber.enable = true;
   };
 
-  # Impressão (CUPS)
-  services.printing.enable = lib.mkDefault true;
-
-  # Pacotes não-livres habilitados por padrão (Obsidian, Spotify, etc.)
-  nixpkgs.config.allowUnfree = lib.mkDefault true;
+  services.pulseaudio = lib.mkIf (cfg.audio == "pulseaudio") {
+    enable = true;
+  };
 }

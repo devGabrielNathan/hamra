@@ -1,11 +1,19 @@
-# Habilita KDE Plasma 6 no sistema.
 { config, lib, ... }:
 
 let
   cfg = config.hamra;
 in
-{
-  services = lib.mkIf cfg.sessions.plasma {
-    desktopManager.plasma6.enable = true;
-  };
+lib.mkIf cfg.sessions.plasma {
+  hamra.session = {
+    displayManager = lib.mkDefault "sddm";
+    compositor     = lib.mkDefault "wayland";
+    portals        = lib.mkDefault "kde";
+    fonts          = lib.mkDefault "default";
+    env = {
+      editor   = lib.mkDefault "nvim";
+      browser  = lib.mkDefault "firefox";
+      terminal = lib.mkDefault "konsole";
+    };
+
+  services.desktopManager.plasma6.enable = true;
 }

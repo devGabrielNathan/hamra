@@ -1,24 +1,17 @@
 # ═══════════════════════════════════════════════════════════════
-# PERFIL DESKTOP COMUM — display manager + home-manager base
+# PERFIL DESKTOP COMUM — módulos compartilhados entre sessões
 # ═══════════════════════════════════════════════════════════════
-# Importado por todos os perfis de desktop (niri, hyprland, etc.)
-# antes dos módulos de sessão específicos.
+# Importado por todos os perfis de desktop antes dos módulos
+# específicos de cada sessão.
 #
-# Inclui:
-#   - SDDM + variáveis de ambiente Wayland
-#   - Módulos home-manager comuns (shell, git, terminal, apps)
+# O que NÃO está aqui (cada sessão opta):
+#   - shell.nix    → gh0stzk usa .zshrc próprio
+#   - terminal.nix → gh0stzk usa temas próprios
 # ═══════════════════════════════════════════════════════════════
 { ... }:
 {
   imports = [
-    # Sistema: display manager e Wayland
-    ../../modules/nixos/desktop/display-manager.nix
-    ../../modules/nixos/desktop/wayland.nix
-
-    # Home Manager: configuração comum do usuário
     ../../modules/home/common/git.nix
-    ../../modules/home/common/shell.nix
-    ../../modules/home/common/terminal.nix
     ../../modules/home/common/apps.nix
   ];
 }

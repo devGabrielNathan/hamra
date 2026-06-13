@@ -4,7 +4,7 @@
   description = "hamra — NixOS modular com specialisations para desktop environments";
 
   inputs = {
-    # Channel unstable — pacotes recentes (Hyprland, Niri, etc.)
+    # Channel unstable — pacotes recentes
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # Home Manager — gerencia dotfiles do usuário (segue o mesmo nixpkgs)
@@ -13,17 +13,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Hyprland — compositor Wayland dinâmico
-    hyprland = {
-      url = "github:hyprwm/Hyprland";
-      inputs.nixpkgs.follows = "nixpkgs";
+    # gh0stzk dotfiles — config BSPWM com 18 temas
+    gh0stzk-dotfiles = {
+      url = "github:gh0stzk/dotfiles";
+      flake = false;
     };
 
-    # Caelestia Shell — shell desktop Quickshell para Hyprland
-    caelestia-shell = {
-      url = "github:caelestia-dots/shell";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # SilentSDDM — tema moderno customizável para SDDM
+    silentSDDM.url = "github:uiriansan/SilentSDDM";
   };
 
   outputs = { self, nixpkgs, home-manager, ... } @ inputs:

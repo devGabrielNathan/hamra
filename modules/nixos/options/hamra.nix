@@ -16,7 +16,7 @@
     # ═══════════════════════════════════════════
     userName = lib.mkOption {
       type = lib.types.str;
-      default = "gabrielnathan"; # Fallback do criador do projeto
+      default = "gabrielnathan";
       description = "Nome do usuário principal do sistema.";
     };
 
@@ -42,7 +42,12 @@
       keymap = lib.mkOption {
         type = lib.types.str;
         default = "us";
-        description = "Mapa de teclado para o console (ex: us, br-abnt2).";
+        description = "Mapa de teclado para o console e X11 (ex: us, br).";
+      };
+      xkbVariant = lib.mkOption {
+        type = lib.types.str;
+        default = "intl";
+        description = "Variante XKB do teclado (ex: intl, abnt2). Vazio = sem variante.";
       };
     };
 
@@ -69,9 +74,9 @@
     # ═══════════════════════════════════════════
     gpu = lib.mkOption {
       type = lib.types.enum [ "amd" "nvidia" "intel" "none" ];
-      default = "intel"; # Seu PC possui GPU Intel Iris Xe
+      default = "intel";
       description = ''
-        GPU do sistema. Configura drivers automaticamente via modules/nixos/desktop/gpu.nix.
+        GPU do sistema. Configura drivers automaticamente via modules/nixos/core/gpu.nix.
         Valores aceitos: amd, nvidia, intel, none.
       '';
     };
@@ -80,62 +85,76 @@
     # SESSÕES
     # ═══════════════════════════════════════════
     sessions = {
-      niri             = lib.mkEnableOption "Niri scrollable-tiling Wayland compositor";
       plasma           = lib.mkEnableOption "KDE Plasma 6 Desktop Environment";
       gnome            = lib.mkEnableOption "GNOME Desktop Environment";
-      hyprland-caelestia = lib.mkEnableOption "Hyprland + Caelestia Shell desktop";
-      recovery         = lib.mkEnableOption "Recovery mode (minimal, no DE)";
+      bspwm            = lib.mkEnableOption "BSPWM + gh0stzk dotfiles (X11)";
     };
 
     defaultSession = lib.mkOption {
-      type = lib.types.enum [ "niri" "plasma" "gnome" "hyprland-caelestia" ];
-      default = "niri";
+      type = lib.types.enum [ "plasma" "gnome" "bspwm" ];
+      default = "bspwm";
       description = "Sessão padrão exibida pelo SDDM.";
     };
 
     # ═══════════════════════════════════════════
-    # APLICATIVOS
+    # SESSION CONFIG — defaults reativos
     # ═══════════════════════════════════════════
-    apps = {
-      browser = lib.mkOption {
-        type = lib.types.str;
-        default = "firefox";
-        description = "Navegador padrão.";
+    # Cada módulo em modules/nixos/desktop/ reage
+    # a estas opções. A sessão só as preenche.
+    # ═══════════════════════════════════════════
+    session = {
+      displayManager = lib.mkOption {
+        type = lib.types.enum [ "sddm" "gdm" ];
+        default = "sddm";
+        description = "Gerenciador de login da sessão.";
       };
-      terminal = lib.mkOption {
-        type = lib.types.str;
-        default = "kitty";
-        description = "Terminal padrão.";
+      sddmTheme = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Tema do SDDM (null = padrão do sistema). Ex: silent.";
       };
-      editor = lib.mkOption {
-        type = lib.types.str;
-        default = "nvim";
-        description = "Editor padrão.";
+
+      compositor = lib.mkOption {
+        type = lib.types.enum [ "x11" "wayland" ];
+        default = "x11";
+        description = "Compositor da sessão (X11 ou Wayland).";
       };
-      fileManager = lib.mkOption {
-        type = lib.types.str;
-        default = "nautilus";
-        description = "Gerenciador de arquivos padrão.";
+      audio = lib.mkOption {
+        type = lib.types.enum [ "pipewire" "pulseaudio" "none" ];
+        default = "pipewire";
+        description = "Sistema de áudio da sessão.";
       };
-      launcher = lib.mkOption {
-        type = lib.types.str;
-        default = "fuzzel";
-        description = "App launcher padrão.";
+      portals = lib.mkOption {
+        type = lib.types.enum [ "none" "gtk" "kde" ];
+        default = "none";
+        description = "Portais XDG da sessão (none, gtk ou kde).";
       };
-      audioControl = lib.mkOption {
-        type = lib.types.str;
-        default = "pavucontrol";
-        description = "Controle de volume padrão.";
+      printing = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Habilitar impressão (CUPS).";
       };
-      mediaControl = lib.mkOption {
-        type = lib.types.str;
-        default = "playerctl";
-        description = "Controle de mídia padrão.";
+      fonts = lib.mkOption {
+        type = lib.types.enum [ "default" "nerd" ];
+        default = "default";
+        description = "Conjunto de fontes: default (Noto + Liberation) ou nerd (+ JetBrainsMono Nerd Font).";
       };
-      brightnessControl = lib.mkOption {
-        type = lib.types.str;
-        default = "brightnessctl";
-        description = "Controle de brilho padrão.";
+      env = {
+        editor = lib.mkOption {
+          type = lib.types.str;
+          default = "nvim";
+          description = "Editor padrão ($EDITOR).";
+        };
+        browser = lib.mkOption {
+          type = lib.types.str;
+          default = "firefox";
+          description = "Navegador padrão ($BROWSER).";
+        };
+        terminal = lib.mkOption {
+          type = lib.types.str;
+          default = "kitty";
+          description = "Terminal padrão ($TERMINAL).";
+        };
       };
     };
 

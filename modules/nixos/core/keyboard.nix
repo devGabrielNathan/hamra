@@ -7,9 +7,9 @@ in
 {
   console.keyMap = lib.mkDefault cfg.system.keymap;
 
-  # Layout de teclado para SDDM e sessões Wayland (XKB)
+  # Layout de teclado para SDDM e sessões X11 (XKB)
   services.xserver.xkb = {
-    layout  = lib.mkDefault "us";
-    variant = lib.mkDefault "altgr-intl";
+    layout  = lib.mkDefault cfg.system.keymap;
+    variant = lib.mkDefault cfg.system.xkbVariant;
   };
 }

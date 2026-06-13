@@ -10,9 +10,9 @@ in
     ./overrides.nix
     ../../profiles/base.nix
     ../../profiles/desktop/common.nix
-    ../../modules/nixos/sessions/hyprland.nix
     ../../modules/nixos/sessions/plasma.nix
     ../../modules/nixos/sessions/gnome.nix
+    ../../modules/nixos/sessions/bspwm.nix
   ];
 
   home-manager = {
@@ -29,11 +29,6 @@ in
   };
 
   specialisation = let cfg = config.hamra; in {}
-  // optionalAttrs cfg.sessions.hyprland-caelestia {
-    hyprland-caelestia.configuration = {
-      imports = [ ../../profiles/desktop/hyprland-caelestia.nix ];
-    };
-  }
   // optionalAttrs cfg.sessions.plasma {
     plasma.configuration = {
       imports = [ ../../profiles/desktop/plasma.nix ];
@@ -44,9 +39,9 @@ in
       imports = [ ../../profiles/desktop/gnome.nix ];
     };
   }
-  // optionalAttrs cfg.sessions.recovery {
-    recovery.configuration = {
-      imports = [ ../../profiles/recovery.nix ];
+  // optionalAttrs cfg.sessions.bspwm {
+    bspwm.configuration = {
+      imports = [ ../../profiles/desktop/bspwm.nix ];
     };
   };
 

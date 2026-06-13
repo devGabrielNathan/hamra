@@ -19,12 +19,8 @@ in
     enable      = true;
     enable32Bit = true;
 
-    # VA-API para Intel (decodificação de vídeo por hardware)
     extraPackages = lib.mkIf isIntel (with pkgs; [
       intel-media-driver
-      # intel-vaapi-driver
-      # libva-vdpau-driver
-      # libvdpau-va-gl
     ]);
   };
 
@@ -49,19 +45,16 @@ in
 
   services.xserver.videoDrivers = lib.mkIf isNvidia [ "nvidia" ];
 
-  # Variáveis de ambiente Wayland para NVIDIA
   environment.sessionVariables = lib.mkIf isNvidia {
     GBM_BACKEND               = "nvidia-drm";
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
     LIBVA_DRIVER_NAME         = "nvidia";
-    NVD_BACKEND               = "direct";
   };
 
-  # Aviso sobre GNOME + NVIDIA (para quando GNOME for suportado)
   assertions = lib.mkIf isNvidia [
     {
-      assertion = true; # placeholder — refinar quando GNOME for adicionado
-      message   = "hamra: NVIDIA detectado. Se usar GNOME, pode haver problemas de integração. Prefira Hyprland ou Niri.";
+      assertion = true;
+      message   = "hamra: NVIDIA + GNOME pode ter problemas. Prefira bspwm.";
     }
   ];
 }

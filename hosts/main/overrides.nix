@@ -20,8 +20,8 @@
 # 2. Habilitar um serviço extra do NixOS (ex: Docker):
 #    virtualisation.docker.enable = true;
 #
-# 3. Sobrescrever opções do Hamra (ex: mudar o navegador padrão):
-#    hamra.apps.browser = "google-chrome-stable";
+# 3. Instalar um navegador diferente:
+#    environment.systemPackages = with pkgs; [ google-chrome-stable ];
 #
 # 4. Modificar configurações do Home Manager para o seu usuário:
 #    home-manager.users.${config.hamra.userName} = {
