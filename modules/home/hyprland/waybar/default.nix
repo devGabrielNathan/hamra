@@ -66,6 +66,7 @@ in {
         tooltip-format-ethernet = "⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}";
         tooltip-format-disconnected = "Disconnected";
         interval = 3;
+        nospacing = 1;
         on-click = "ghostty -e nmcli";
       };
       battery = {

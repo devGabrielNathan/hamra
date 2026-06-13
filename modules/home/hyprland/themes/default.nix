@@ -27,4 +27,8 @@
     base16-theme = "catppuccin-macchiato";
     vscode-theme = "Catppuccin Macchiato";
   };
+  "catppuccin-macchiato" = {
+    base16-theme = "catppuccin-macchiato";
+    vscode-theme = "Catppuccin Macchiato";
+  };
 }

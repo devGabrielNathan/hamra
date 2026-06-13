@@ -8,9 +8,15 @@ in
 {
   users.mutableUsers = lib.mkDefault true;
 
-  virtualisation.docker.enable = true;
-
+  # ── Serviços que quero em todas as máquinas ─────────────────
+  hardware.bluetooth.enable = true;
+  programs.dconf.enable = true;
+  programs.direnv.enable = true;
   programs.wireshark.enable = true;
+  services.blueman.enable = true;
+  services.resolved.enable = true;
+  virtualisation.containers.enable = true;
+  virtualisation.docker.enable = true;
 
   programs.zsh.enable = true;
 

@@ -12,7 +12,8 @@ lib.mkIf cfg.sessions.hyprland {
     ../../desktop/fonts.nix
     ../../desktop/gtk.nix
     ../../desktop/portals.nix
-    ../../services/1password
+    ../../desktop/polkit.nix
+    ../../services/1password.nix
   ];
 
   hamra.session = {
@@ -32,18 +33,6 @@ lib.mkIf cfg.sessions.hyprland {
   };
 
   programs.hyprland.enable = true;
-  programs.dconf.enable = true;
-
-  hardware.bluetooth.enable = true;
-  services.blueman.enable = true;
-
-  programs.direnv.enable = true;
-  services.resolved.enable = true;
-
-  virtualisation.containers.enable = true;
-  virtualisation.docker.enable = true;
 
   environment.systemPackages = packages.systemPackages;
-
-  users.users.${cfg.userName}.shell = pkgs.zsh;
 }
