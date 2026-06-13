@@ -2,7 +2,7 @@
 
 let
   cfg = config.omarchy;
-  themes = import ../themes.nix;
+  themes = import ../themes;
   theme = themes.${cfg.theme} or themes."catppuccin";
 in {
   programs.vscode = {

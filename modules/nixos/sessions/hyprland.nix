@@ -2,7 +2,7 @@
 
 let
   cfg = config.hamra;
-  packages = import ../../../home/hyprland/packages.nix { inherit pkgs lib; exclude_packages = config.omarchy.exclude_packages; };
+  packages = import ../../../home/hyprland/packages { inherit pkgs lib; exclude_packages = config.omarchy.exclude_packages; };
 in
 lib.mkIf cfg.sessions.hyprland {
   imports = [
@@ -12,7 +12,7 @@ lib.mkIf cfg.sessions.hyprland {
     ../../desktop/fonts.nix
     ../../desktop/gtk.nix
     ../../desktop/portals.nix
-    ../../1password.nix
+    ../../services/1password
   ];
 
   hamra.session = {

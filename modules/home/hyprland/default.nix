@@ -1,7 +1,7 @@
 { config, lib, pkgs, inputs, ... }:
 
 let
-  themes = import ./themes.nix;
+  themes = import ./themes;
   isGenerated = config.omarchy.theme == "generated_light" || config.omarchy.theme == "generated_dark";
   selectedTheme =
     if isGenerated then null
